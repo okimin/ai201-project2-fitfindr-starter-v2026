@@ -28,6 +28,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
+Searches can be vague and not return a response.
 
 ---
 
@@ -38,7 +39,8 @@ Given a query that matches no listings, the agent stops before calling
 
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+     about this path? -->\
+A complex query should not be processed and require mediation.
 
 ---
 
@@ -53,11 +55,12 @@ Given a query that matches no listings, the agent stops before calling
      look like state failure — it looks like a tool problem. Something that
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
+3 runs with the suggest outfits should return a different descripption. 5 out of 5.
 
 
 
 **Why this target:**
-
+Similar outfits can have different desciptions of their outfits. Vary in description
 
 
 ---
@@ -74,11 +77,11 @@ Given a query that matches no listings, the agent stops before calling
      mentions the price? Two different items producing the same opening
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
-
+A fit card must have one of the items on their caption. 3 out of 5.
 
 
 **Why this target:**
-
+there may be general posts describing the outfit, not making the task.
 
 
 ---
@@ -91,11 +94,11 @@ Given a query that matches no listings, the agent stops before calling
      wardrobe path, what happens when the model can't be reached, whether the
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
-
+The final outfit shouldn't exceed 90% of the max price. 4 out of 5.
 
 
 **Why this target:**
-
+Care about affordability for the customers.
 
 
 ---
