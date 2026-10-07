@@ -40,7 +40,7 @@
 ## What This Does
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
-
+A user can get recommended outfits based on what they are looking for. They give a description of their item with the size and the budget they. They get back a recommened item with a caption on the item.
 
 
 ---
@@ -68,13 +68,13 @@
 
 - **What it does:** Given a thrifted item and the user's wardrobe, suggest one or two outfits.
 - **Inputs:** new_item (dict), wardrobe(dict)
-- **Returns:** Returns a list of what outfits to wear, in form of a string.
-- **When it has nothing:** An empty list (in the future )
+- **Returns:** Returns an outfit to wear as a string. 
+- **When it has nothing:** General advice in form of a string.
 
 ### `create_fit_card`
 
 - **What it does:** Write a short caption someone would actually post about the find.
-- **Inputs:** Outfit (str), new_item (str)
+- **Inputs:** Outfit (str), new_item (dict)
 - **Returns:** A caption about the outfit mention
 - **When it has nothing:** Return a descriptive message.
 
@@ -125,7 +125,35 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$python app.py ask 'vintage graphic tee under $30'
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Y2K Baby Tee — Butterfly Print, Vintage Band Tee — Faded Grey … +7 more
+      →    10 match(es)
+[3] select_item
+      out: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+[4] suggest_outfit
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: Here are two ways to style that 2003 tour graphic tee using pieces you already own:  **Outfit 1: Effortless Gr…
+      →    10 wardrobe item(s)
+[5] create_fit_card
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: still obsessed with how good this 2003 tour graphic tee looks with some baggy denim and beat-up boots. snagged…
+
+  Found:    Graphic Tee — 2003 Tour Bootleg Style — $24.0 on depop
+
+  Outfit:   Here are two ways to style that 2003 tour graphic tee using pieces you already own:
+
+**Outfit 1: Effortless Grunge Streetwear**
+Pair the graphic tee with your baggy straight-leg jeans, dark wash for a classic off-duty look. Layer the vintage black denim jacket on top and finish the outfit with your black combat boots to lean into that authentic, edgy vintage aesthetic. 
+
+**Outfit 2: Casual Contrast**
+Tuck the graphic tee into your wide-leg khaki trousers for a cool mix of vintage band merch and structured neutrals. Slip on your chunky white sneakers to add a fresh, casual balance, and accessorize with your black crossbody bag to pull the whole look together.
+
+  Fit card: still obsessed with how good this 2003 tour graphic tee looks with some baggy denim and beat-up boots. snagged it on depop for just $24 and it's giving the ultimate grungy, lived-in streetwear vibe. honestly might just live in this tee all fall.
 
 ```
 
@@ -133,17 +161,21 @@ $ python app.py ask '...'
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+Here are two practical ways to style those vintage Levi's using pieces already in your closet:
 
+**Outfit 1 (Casual & Effortless):** Pair the Vintage Levi's 501 Jeans with your White ribbed tank top and layer the Oversized grey crewneck sweatshirt over top for a relaxed, textured look. Finish the outfit with your Chunky white sneakers and the Black crossbody bag for an easy, everyday streetwear vibe that leans into the classic straight-leg fit.
+
+**Outfit 2 (Edgy & Defined):** Tuck your White ribbed tank top into the jeans, cinch the waist with your Brown leather belt, and throw on the Vintage black denim jacket. Ground the entire look with your Black combat boots to create a sharp, vintage-inspired outfit with a bit of attitude.
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Nothing beats a broken-in pair of vintage Levi's 501s, especially when they fit this good. I just threw them on with some beat-up white sneakers for that ultimate effortless, casual streetwear vibe. Snagged these medium wash blues on Depop for $38 and they're about to become my daily uniform.
 ```
 
 ---
@@ -159,15 +191,15 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked for Claude to help create implementations for the tools.
+- *What came back:* Implementation and testing of the tools so that they are working properly.
+- *What I changed:* N/A
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Validation of my criterias
+- *What came back:* Feedback of the criterias I created.
+- *What I changed:* Revised my criteria 5 to have goal in mind besides being more affordable.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
