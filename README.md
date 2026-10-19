@@ -207,6 +207,61 @@ Nothing beats a broken-in pair of vintage Levi's 501s, especially when they fit 
      ═══════════════════════════════════════════════════════════════════ -->
 
 ---
+## Intentional Failures
+
+```
+[1] parse_query
+      in:  premium bags under $5
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+
+  Nothing in the listings matched description 'premium bags', under $5.
+Things to change: try broader words — 'jacket' finds more than 'cropped corduroy jacket'; raise the price ceiling above $5.
+
+0 model calls this session
+```
+
+```
+(running with an empty wardrobe)
+[1] parse_query
+      in:  ...
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+
+  Nothing in the listings matched description '...'.
+Things to change: try broader words — 'jacket' finds more than 'cropped corduroy jacket'.
+
+0 model calls this session
+```
+
+```
+[1] parse_query
+      in:  suit under $40
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+
+  Nothing in the listings matched description 'suit', under $40.
+Things to change: try broader words — 'jacket' finds more than 'cropped corduroy jacket'; raise the price ceiling above $40.
+
+0 model calls this session
+```
+
+
 
 ## Run Log — Before
 
@@ -221,17 +276,64 @@ Nothing beats a broken-in pair of vintage Levi's 501s, especially when they fit 
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. matching query completes |  |   |   |   |   |   |  |
+| 1. matching query with size completes |  |   |   |   |   |   |  |
+| 2. impossible query stops early |  |   |   |   |   |   |  |
+| 2. real item priced out stops early |  |   |   |   |   |   |  |
+| 3. same item, outfit varies |  |   |   |   |   |   |  |
+| 4. fit card names item: cardigan |  |   |   |   |   |   |  |
+| 4. fit card names item: slip dress |  |   |   |   |   |   |  |
+| 4. fit card names item: mary janes |  |   |   |   |   |   |  |
+| 5. price ceiling, item well under |  |   |   |   |   |   |  |
+| 5. price ceiling, item near the top |  |   |   |   |   |   |  |
+| 5. price ceiling, cheaper options exist |  |   |   |   |   |   |  |
+| empty wardrobe _(diagnostic — not one of your five)_ |  |   |   |   |   |   |  |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
+- Query: `vintage graphic tee under $30`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+- search_results: 10
+
+Outfit suggestion:
+
+```
+**Outfit 1:** Pair the graphic tee with your baggy straight-leg jeans, dark wash and black combat boots. Layer the vintage black denim jacket on top and accessorize with your black crossbody bag for an effortless, grunge-inspired streetwear look. 
+
+**Outfit 2:** Tuck the graphic tee into your wide-leg khaki trousers, secured with the brown leather belt, and finish the outfit with your chunky white sneakers. Throw on your black cropped zip hoodie as an easy layering piece to add contrast and edge to the neutral tones.
 ```
 
+Fit card:
+
+```
+Obsessed with how this 2003 tour bootleg graphic tee fits—gives the ultimate effortless grunge vibe whether you're dressing it up or keeping it casual. Snagged it on Depop for just $24, and honestly it’s about to be my new daily uniform.
+```
+
+Trace:
+
+```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Y2K Baby Tee — Butterfly Print, Vintage Band Tee — Faded Grey … +7 more
+      →    10 match(es)
+[3] select_item
+      out: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+[4] suggest_outfit
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: **Outfit 1:** Pair the graphic tee with your baggy straight-leg jeans, dark wash and black combat boots. Layer…
+      →    10 wardrobe item(s)
+[5] create_fit_card
+      in:  Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+      out: Obsessed with how this 2003 tour bootleg graphic tee fits—gives the ultimate effortless grunge vibe whether yo…
 ```
 
 ---
@@ -283,13 +385,56 @@ that produced it:
 **Happy path**
 
 ```
+1] parse_query
+      in:  jacket
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 4 items: 90s Track Jacket — Navy/White Stripe, Denim Jacket — Light Wash, Cropped, 90s Leather Bomber — Black … +1 more
+      →    4 match(es)
+[3] select_item
+      out: 90s Track Jacket — Navy/White Stripe ($45.0, poshmark)
+[4] suggest_outfit
+      in:  90s Track Jacket — Navy/White Stripe ($45.0, poshmark)
+      out: Here are two ways to style that 90s Champion track jacket using the pieces already in your closet:  **The Casu…
+      →    10 wardrobe item(s)
+[5] create_fit_card
+      in:  90s Track Jacket — Navy/White Stripe ($45.0, poshmark)
+      out: Found this vintage Champion track jacket in mint condition and it’s giving major 90s streetwear vibes. Snagged…
 
+  Found:    90s Track Jacket — Navy/White Stripe — $45.0 on poshmark
+
+  Outfit:   Here are two ways to style that 90s Champion track jacket using the pieces already in your closet:
+
+**The Casual Streetwear Look**
+Pair the track jacket over your white ribbed tank top and let it hang open, matched with your baggy straight-leg jeans. Complete the outfit with your chunky white sneakers and the black crossbody bag for an effortless, throwback-inspired everyday fit that leans into the 90s athletic aesthetic.
+
+**The Smart-Casual Contrast**
+Wear the track jacket zipped up over your wide-leg khaki trousers, cinched at the waist with your brown leather belt to add a touch of polish. Finish the look with your black combat boots to create a cool juxtaposition between sporty vintage outerwear and tailored streetwear pants.
+
+  Fit card: Found this vintage Champion track jacket in mint condition and it’s giving major 90s streetwear vibes. Snagged it on Poshmark for just $45, and honestly I've been living in it. Whether you dress it down with baggy jeans or mix it up with khakis, it's the ultimate casual throw-on piece.
+
+2 model calls this session, 537 prompt + 224 output tokens
 ```
 
 **Empty search**
 
 ```
+(.venv) ai201-project2-fitfindr-starter-v2026 $python app.py ask '...' --trace   
+[1] parse_query
+      in:  ...
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
 
+  Nothing in the listings matched description '...'.
+Things to change: try broader words — 'jacket' finds more than 'cropped corduroy jacket'.
+
+0 model calls this session
 ```
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
