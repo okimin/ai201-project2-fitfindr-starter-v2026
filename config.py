@@ -61,6 +61,11 @@ MAX_ITERATIONS = 10
 # How many search results to consider. The agent uses the first one.
 SEARCH_RESULT_LIMIT = 10
 
+# Share of the user's price ceiling the selected item should stay within
+# (criterion 5). Applied when choosing among search results, not in the search
+# itself, so a listing between this and the ceiling is still found.
+BUDGET_SHARE = 0.9
+
 
 # ─── Model ───────────────────────────────────────────────────────────────────
 

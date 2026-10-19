@@ -201,6 +201,18 @@ Nothing beats a broken-in pair of vintage Levi's 501s, especially when they fit 
 - *What came back:* Feedback of the criterias I created.
 - *What I changed:* Revised my criteria 5 to have goal in mind besides being more affordable.
 
+**Moment 3**
+
+- *What I asked for:* Coming up with extra prompts to test the criterions
+- *What came back:* multiple scenarios to stress the multiple criterions 
+- *What I changed:* N/A
+
+**Moment 4**
+
+- *What I asked for:* Suggestions on how to improve the toolings.
+- *What came back:* Improvement on the branching strategy.
+- *What I changed:* N/A
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -276,18 +288,17 @@ Things to change: try broader words — 'jacket' finds more than 'cropped cordur
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1. matching query completes |  |   |   |   |   |   |  |
-| 1. matching query with size completes |  |   |   |   |   |   |  |
-| 2. impossible query stops early |  |   |   |   |   |   |  |
-| 2. real item priced out stops early |  |   |   |   |   |   |  |
-| 3. same item, outfit varies |  |   |   |   |   |   |  |
-| 4. fit card names item: cardigan |  |   |   |   |   |   |  |
-| 4. fit card names item: slip dress |  |   |   |   |   |   |  |
-| 4. fit card names item: mary janes |  |   |   |   |   |   |  |
-| 5. price ceiling, item well under |  |   |   |   |   |   |  |
-| 5. price ceiling, item near the top |  |   |   |   |   |   |  |
-| 5. price ceiling, cheaper options exist |  |   |   |   |   |   |  |
-| empty wardrobe _(diagnostic — not one of your five)_ |  |   |   |   |   |   |  |
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 1. matching query with size completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. real item priced out stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. same item, outfit varies | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: cardigan | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: slip dress | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: mary janes | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. price ceiling, item well under | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. price ceiling, item near the top | 4 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
+| 5. price ceiling, cheaper options exist | 4 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
@@ -358,13 +369,24 @@ Trace:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | A matching query completes all three tools | 4 of 5 | MET (10/10) | PASS when `stopped early: no` and both an outfit suggestion and a fit card are in the session. Both scenarios did this on every try. |
+| 2 | An impossible query stops before `suggest_outfit` | 5 of 5 | MET (10/10) | PASS when the trace ends at `[3] branch` with no `suggest_outfit` step and `session["error"]` has a "Things to change" line. Both scenarios did this on every try. |
+| 3 | Same item, outfit suggestion differs | 5 of 5 | MET (5/5) | PASS when a try's outfit suggestion differs from the other four. All 5 differ. `selected_item` was the Oversized Flannel Shirt on every try, and the trace's `suggest_outfit` input matched it each time. |
+| 4 | Fit card names the item | 3 of 5 | MET (15/15) | PASS when the caption names the selected item by type (cardigan, slip dress, Mary Janes). All 15 did. None copied the full listing title, and I didn't require that. |
+| 5 | Selected item is at most 90% of the price ceiling | 4 of 5 | **MISSED** (5/15) | PASS when `selected_item.price ≤ 0.9 × max_price`. Graphic tee: $18 / $50 = 36%, 5/5. Denim jacket: $42 / $45 = 93%, 0/5. Leather bomber: $75 / $80 = 94%, 0/5. Two of the three price scenarios failed every try. |
 
 **Diagnoses**
+
+**Criterion 5: a tool problem, not the loop, the session or the model.**
+
+- **Where:** `search_listings`, in [tools.py:110](tools.py#L110). The loop then takes the top result in [agent.py:166](agent.py#L166).
+- **How:** the price filter drops only listings *above* `max_price` (`listing["price"] > max_price`). Nothing in the agent applies the 90% limit, so any listing up to 100% of the ceiling gets through.
+- **Why the top result is expensive:** search then ranks by keyword score alone, so price never affects the order. For "leather bomber under $80", the $12 belt and the $38 bag are in the results too. The $75 bomber still comes first because it matches both words.
+- **Not the model or the session:** the trace shows the same item went into `suggest_outfit` as the one `select_item` picked, and the model only ever saw that one item.
+- **Not flaky:** search doesn't call a model, so each scenario fails the same way on all five tries. The miss is in how the code is built.
+- **The pattern:** two failing rows, one cause. The agent was never told about the 90% rule.
+
+**One more finding, though no criterion missed:** on "platform mary janes under $20", the stop message's first suggestion is "try broader words". That's wrong for this query. The words matched lst_009; the $20 ceiling is what removed it. `_nothing_found_message` lists every possible cause without checking which one actually emptied the results.
 
 
 
@@ -453,24 +475,56 @@ full. -->
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** I added a second branch to `run_agent`, at the select step (`_select_within_budget` in `agent.py`). Before, the loop always took `results[0]`. Now, if `results[0]` costs more than `BUDGET_SHARE` (0.9, in `config.py`) of the price ceiling, the loop takes the first lower-ranked result **in the same category** that's within budget. If there isn't one, it keeps `results[0]` and writes the reason to a new session field, `budget_note`. The trace and `app.py` both show that note. The search tool itself is unchanged: `max_price` still filters inclusively.
 
-**Which failure it was meant to fix:**
+I kept the same-category rule on purpose. Picking the cheapest match regardless of category would pass criterion 5 by handing back denim shorts for "denim jacket" and a belt for "leather bomber". That would make the number look better while making the agent worse.
+
+**Which failure it was meant to fix:** Criterion 5, which missed at 5/15. The diagnosis found that the loop takes the top keyword match even at 93–94% of the ceiling, because no step ever applied the 90% rule.
+
+Expected effect, checked by running the selection step on its own, without model calls:
+
+- `denim jacket under $45` should now pick the Denim Vest ($27, outerwear) instead of the Denim Jacket ($42).
+- `leather bomber under $80` should still pick the Bomber ($75), with a `budget_note`. No other outerwear in its results is under $72.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 1. matching query with size completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. real item priced out stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. same item, outfit varies | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: cardigan | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: slip dress | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card names item: mary janes | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. price ceiling, item well under | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. price ceiling, item near the top | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. price ceiling, cheaper options exist | 4 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
 
-**Did it help, and how do I know:**
+| # | Criterion | Before | After | Verdict after |
+|---|---|---|---|---|
+| 1 | A matching query completes all three tools | 10/10 | 10/10 | MET |
+| 2 | An impossible query stops before `suggest_outfit` | 10/10 | 10/10 | MET |
+| 3 | Same item, outfit suggestion differs | 5/5 | 5/5 | MET |
+| 4 | Fit card names the item | 15/15 | 15/15 | MET |
+| 5 | Selected item is at most 90% of the price ceiling | 5/15 | 10/15 | **MISSED** |
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+**Did it help, and how do I know:** It helped one of the two failing rows. Criterion 5 is still MISSED.
+
+**Denim jacket under $45: 0/5 → 5/5.**
+
+- The trace's `select_item` step now records: *"top match Denim Jacket — Light Wash, Cropped ($42) was over 90% of $45: took a cheaper outerwear result instead"*.
+- The Denim Vest ($27, 60%) is what reached `suggest_outfit` on all five tries, so the change carried through the session.
+- The criterion passes, but the user asked for a jacket and got a vest. "Same category" (outerwear) turned out to be looser than "same kind of item".
+
+**Leather bomber under $80: still 0/5.**
+
+- The branch ran, found no other outerwear under $72, and kept the Bomber ($75, 94%).
+- `budget_note` now tells the user it's over budget. Before, it said nothing.
+- The data has no cheaper outerwear for that query, so no selection rule can pass this row without giving up on the item the user asked for.
+
+**Nothing else changed.** The other nine rows pick the same items as before (their trace notes read "within budget" or "no price ceiling"), and every one of them still passes.
 
 
 

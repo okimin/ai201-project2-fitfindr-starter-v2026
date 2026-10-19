@@ -25,6 +25,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "parsed": {},                # description / size / max_price you pulled out of it
         "search_results": [],        # everything search_listings returned
         "selected_item": None,       # the one you chose — goes into suggest_outfit
+        "budget_note": None,         # set when selected_item is over BUDGET_SHARE of max_price
         "wardrobe": wardrobe,        # the user's wardrobe
         "outfit_suggestion": None,   # what suggest_outfit returned
         "fit_card": None,            # what create_fit_card returned
@@ -161,10 +162,31 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             )
             return session
 
+        # ── THE BUDGET BRANCH ─────────────────────────────────────────────────
+        # Search ranks by keywords only, so results[0] can sit just under the
+        # ceiling. Prefer a same-category result within BUDGET_SHARE of it;
+        # if there isn't one, keep results[0] and say it's over budget.
         steps += 1
         trace.check_iterations(steps)
-        session["selected_item"] = results[0]
-        trace.step("select_item", returned=session["selected_item"])
+        item, swapped = _select_within_budget(results, parsed["max_price"])
+        session["selected_item"] = item
+        if swapped:
+            note = (
+                f"top match {results[0]['title']} (${results[0]['price']:g}) was "
+                f"over {config.BUDGET_SHARE:.0%} of ${parsed['max_price']:g}: "
+                f"took a cheaper {item['category']} result instead"
+            )
+        elif _over_budget(item, parsed["max_price"]):
+            session["budget_note"] = (
+                f"{item['title']} is ${item['price']:g}, "
+                f"{item['price'] / parsed['max_price']:.0%} of your ${parsed['max_price']:g} "
+                f"ceiling, and no other {item['category']} in the results came in under "
+                f"{config.BUDGET_SHARE:.0%}."
+            )
+            note = f"over budget, no same-category alternative: {session['budget_note']}"
+        else:
+            note = "within budget" if parsed["max_price"] is not None else "no price ceiling"
+        trace.step("select_item", returned=session["selected_item"], note=note)
 
         steps += 1
         trace.check_iterations(steps)
@@ -200,6 +222,28 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         trace.step("model unavailable", note="stopping, search results kept")
 
     return session
+
+
+def _over_budget(item: dict, max_price: float | None) -> bool:
+    return max_price is not None and item["price"] > config.BUDGET_SHARE * max_price
+
+
+def _select_within_budget(results: list[dict], max_price: float | None) -> tuple[dict, bool]:
+    """
+    Choose which search result goes into suggest_outfit.
+
+    Returns (item, swapped). results[0] unless it's over budget and a lower-
+    ranked result in the same category isn't — the user asked for a jacket, so
+    a cheaper pair of shorts is not an answer. swapped is True when the item
+    isn't results[0].
+    """
+    top = results[0]
+    if not _over_budget(top, max_price):
+        return top, False
+    for listing in results[1:]:
+        if listing["category"] == top["category"] and not _over_budget(listing, max_price):
+            return listing, True
+    return top, False
 
 
 def _nothing_found_message(parsed: dict) -> str:
